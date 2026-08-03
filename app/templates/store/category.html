@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}{{ current_category.name }} - {{ settings.APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="page-title">{{ current_category.name }}</h1>
+    <p class="page-subtitle">{{ products|length }} product(s) available</p>
+    
+    <div class="products-grid">
+        {% for product in products %}
+            {% include "store/_product_card.html" %}
+        {% else %}
+            <div class="empty-state">
+                <p>No products found in this category.</p>
+                <a href="/" class="btn btn-primary">Browse All Products</a>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

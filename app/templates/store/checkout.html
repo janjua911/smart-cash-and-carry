@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Checkout | AI Fatah{% endblock %}
+{% block content %}
+<main class="shell page-shell">
+  <div class="page-heading"><p class="eyebrow">Secure checkout</p><h1>Delivery details</h1><p>Place a website order. The admin will manage it from the dashboard.</p></div>
+  {% if error %}<div class="form-error">{{ error }}</div>{% endif %}
+  <div class="checkout-layout">
+    <form class="checkout-form card-panel" action="/checkout" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="form-grid"><label>Full name<input name="customer_name" value="{{ form_data.customer_name|default('') }}" required minlength="2"></label><label>Phone number<input name="phone" value="{{ form_data.phone|default('') }}" required minlength="10"></label></div>
+      <label>Email address <small>(optional)</small><input type="email" name="email" value="{{ form_data.email|default('') }}"></label>
+      <label>Complete delivery address<textarea name="address" rows="4" required minlength="10">{{ form_data.address|default('') }}</textarea></label>
+      <label>Order notes <small>(optional)</small><textarea name="notes" rows="3">{{ form_data.notes|default('') }}</textarea></label>
+      <fieldset><legend>Payment method</legend><label class="radio-card"><input type="radio" name="payment_method" value="cash_on_delivery" {% if form_data.payment_method|default('cash_on_delivery') == 'cash_on_delivery' %}checked{% endif %}><span><strong>Cash on delivery</strong><small>Pay when your order arrives</small></span></label><label class="radio-card"><input type="radio" name="payment_method" value="bank_transfer" {% if form_data.payment_method == 'bank_transfer' %}checked{% endif %}><span><strong>Bank transfer</strong><small>Admin will share payment details</small></span></label></fieldset>
+      <button class="primary-button full-button" type="submit">Place website order</button>
+    </form>
+    <aside class="order-summary"><h2>Your order</h2>{% for item in items %}<div><span>{{ item.product.name }} × {{ item.quantity }}</span><strong>{{ item.line_total|currency }}</strong></div>{% endfor %}<hr><div class="summary-total"><span>Total</span><strong>{{ total|currency }}</strong></div></aside>
+  </div>
+</main>
+{% endblock %}

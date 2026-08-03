@@ -1,0 +1,19 @@
+<article class="product-card">
+  <a class="product-image" href="/products/{{ product.slug }}">
+    {% if product.image_path %}<img src="{{ product.image_path }}" alt="{{ product.name }}" loading="lazy">{% else %}<span>{{ product.name[:1]|upper }}</span>{% endif %}
+    {% if product.discount_percentage %}<b class="discount-badge">{{ product.discount_percentage }}% off</b>{% endif %}
+    {% if not product.can_order %}<b class="stock-overlay">{{ product.stock_status.value|replace('_',' ')|title }}</b>{% endif %}
+  </a>
+  <div class="product-content">
+    <p class="product-category">{{ product.category.name }}</p>
+    <a href="/products/{{ product.slug }}"><h3>{{ product.name }}</h3></a>
+    <p class="unit">{{ product.unit }} • {{ product.stock_quantity }} available</p>
+    <div class="product-footer">
+      <div><strong>{{ product.price|currency }}</strong>{% if product.compare_at_price %}<del>{{ product.compare_at_price|currency }}</del>{% endif %}</div>
+      <form action="/cart/add/{{ product.id }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="quantity" value="1"><input type="hidden" name="next_url" value="{{ request.url.path }}#products">
+        <button type="submit" class="add-button" {% if not product.can_order %}disabled{% endif %} aria-label="Add {{ product.name }} to cart">+</button>
+      </form>
+    </div>
+  </div>
+</article>

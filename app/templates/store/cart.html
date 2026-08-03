@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Your Cart | AI Fatah{% endblock %}
+{% block content %}
+<main class="shell page-shell">
+  <div class="page-heading"><p class="eyebrow">Your basket</p><h1>Shopping cart</h1><p>Review quantities before website or WhatsApp checkout.</p></div>
+  {% if items %}
+  <div class="cart-layout">
+    <section class="cart-items">
+      {% for item in items %}
+      <article class="cart-item">
+        <a href="/products/{{ item.product.slug }}" class="cart-thumb">{% if item.product.image_path %}<img src="{{ item.product.image_path }}" alt="{{ item.product.name }}">{% else %}<span>{{ item.product.name[:1] }}</span>{% endif %}</a>
+        <div class="cart-item-copy"><a href="/products/{{ item.product.slug }}"><h3>{{ item.product.name }}</h3></a><p>{{ item.product.unit }}</p><strong>{{ item.product.price|currency }} each</strong></div>
+        <form class="quantity-form" action="/cart/update/{{ item.product.id }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>Qty<input type="number" name="quantity" value="{{ item.quantity }}" min="0" max="{{ item.product.stock_quantity }}"></label><button type="submit">Update</button></form>
+        <div class="line-total">{{ item.line_total|currency }}</div>
+        <form action="/cart/remove/{{ item.product.id }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="remove-button" type="submit">Remove</button></form>
+      </article>
+      {% endfor %}
+    </section>
+    <aside class="order-summary"><h2>Order summary</h2><div><span>Subtotal</span><strong>{{ total|currency }}</strong></div><div><span>Delivery</span><strong>Calculated later</strong></div><hr><div class="summary-total"><span>Estimated total</span><strong>{{ total|currency }}</strong></div><a class="primary-button full-button" href="/checkout">Website checkout</a><a class="whatsapp-button full-button" href="/cart/whatsapp" target="_blank" rel="noopener">Order through WhatsApp</a><p>Stock and final delivery charges are confirmed before dispatch.</p></aside>
+  </div>
+  {% else %}<div class="empty-state cart-empty"><span>🛒</span><h2>Your cart is empty</h2><p>Add some fresh groceries to get started.</p><a class="primary-button" href="/">Start shopping</a></div>{% endif %}
+</main>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} | AI Fatah{% endblock %}
+{% block content %}
+<main class="shell detail-page">
+  <a href="/" class="back-link">← Back to shop</a>
+  <section class="detail-grid">
+    <div class="detail-image">{% if product.image_path %}<img src="{{ product.image_path }}" alt="{{ product.name }}">{% else %}<span>{{ product.name[:1]|upper }}</span>{% endif %}</div>
+    <div class="detail-copy">
+      <p class="eyebrow">{{ product.category.name }}</p><h1>{{ product.name }}</h1><p class="detail-unit">{{ product.unit }}</p>
+      <div class="detail-price"><strong>{{ product.price|currency }}</strong>{% if product.compare_at_price %}<del>{{ product.compare_at_price|currency }}</del>{% endif %}</div>
+      <p class="detail-description">{{ product.description or 'Freshly listed by our store team. Contact us if you need more product details.' }}</p>
+      <div class="availability {{ product.stock_status.value }}"><span></span>{{ product.stock_status.value|replace('_',' ')|title }} • {{ product.stock_quantity }} available</div>
+      <form class="detail-cart-form" action="/cart/add/{{ product.id }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="next_url" value="/cart">
+        <label>Quantity<input type="number" name="quantity" min="1" max="{{ product.stock_quantity }}" value="1"></label>
+        <button class="primary-button" type="submit" {% if not product.can_order %}disabled{% endif %}>Add to cart</button>
+      </form>
+    </div>
+  </section>
+</main>
+{% endblock %}

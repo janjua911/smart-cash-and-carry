@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}SMART CASH AND CARRY | Fresh groceries delivered{% endblock %}
+{% block content %}
+<main>
+  <section class="hero shell">
+    <div class="hero-copy">
+      <p class="eyebrow"><span>●</span> Your weekly fresh pick</p>
+      <h1>Fresh groceries,<br><em>right at your door.</em></h1>
+      <p>From farm-fresh produce to everyday essentials, find everything your home needs in one place.</p>
+      <div class="hero-actions"><a href="#products" class="primary-button">Shop this week →</a><a href="#categories" class="text-link">Browse categories</a></div>
+      <div class="hero-stats"><span><strong>30–60 min</strong>delivery</span><span><strong>1,500+</strong>essentials</span><span><strong>7 days</strong>support</span></div>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <div class="art-circle"></div><span class="art-bag">SMART<br> Cash & Carry </span><span class="art-item art-one">🥬</span><span class="art-item art-two">🍅</span><span class="art-item art-three">🥖</span><span class="art-item art-four">🥛</span><span class="sale-bubble">20%<small>OFF</small></span>
+    </div>
+  </section>
+
+  <!-- ✅ Updated Category Section with Carousel (error fixed) -->
+  <section class="shell section" id="categories">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Start with a category</p>
+        <h2>Everything on your list</h2>
+      </div>
+      <a href="/">View all →</a>
+    </div>
+    
+    <div class="category-carousel-wrapper">
+      <button class="carousel-arrow carousel-prev" aria-label="Previous categories">←</button>
+      
+      <div class="category-carousel" id="categoryCarousel">
+        {% set category_icons = ['🥬','🥛','🥐','🫙','🧴','✨','🥤','🧸','🌶️','🍞','🧼','🍵'] %}
+        {% for category in categories %}
+          <!-- ✅ Fixed: using 12 directly instead of category_icons|length -->
+          <a class="category-card carousel-card" href="/category/{{ category.slug }}">
+            <div class="card-glow"></div>
+            <span class="card-icon">{{ category_icons[loop.index0 % 12] }}</span>
+            <strong>{{ category.name }}</strong>
+          </a>
+        {% else %}
+          <p class="empty-inline">Categories will appear here after the admin creates them.</p>
+        {% endfor %}
+      </div>
+      
+      <button class="carousel-arrow carousel-next" aria-label="Next categories">→</button>
+    </div>
+  </section>
+
+  <section class="shell section product-section" id="products">
+    <div class="section-heading"><div><p class="eyebrow">Better prices, every day</p><h2>Today&apos;s best value</h2><p>Prices and availability are controlled from the admin dashboard.</p></div></div>
+    {% if search_query or selected_category %}<div class="filter-summary"><span>{{ products|length }} result(s) found</span><a href="/">Clear filters</a></div>{% endif %}
+    <div class="product-grid">
+      {% for product in products %}{% include "store/_product_card.html" %}{% else %}
+        <div class="empty-state"><span>🔎</span><h3>No products found</h3><p>Try another search or ask the admin to add products.</p></div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="shell promo-grid">
+    <!-- ✅ Updated promo links to use dedicated category pages -->
+    <article class="promo-card promo-green"><p class="eyebrow">Fresh market weekend</p><h2>Colour your basket<br>with better produce.</h2><p>Fresh choices at fair everyday prices.</p><a href="/category/fresh-produce">Shop fresh →</a><span>🍊🥦</span></article>
+    <article class="promo-card promo-peach"><p class="eyebrow">Home care refresh</p><h2>A cleaner home,<br>for a little less.</h2><p>Stock up on everyday cleaning essentials.</p><a href="/category/home-care">Explore home care →</a><span>🫧🧴</span></article>
+  </section>
+
+  <section class="shell service-strip">
+    <article><span>🚚</span><div><strong>Reliable delivery</strong><p>Carefully packed and delivered on time.</p></div></article>
+    <article><span>🌱</span><div><strong>Freshness checked</strong><p>Quality reviewed before every order.</p></div></article>
+    <article><span>↩</span><div><strong>Easy support</strong><p>Simple help when something is not right.</p></div></article>
+    <article><span>🔒</span><div><strong>Secure checkout</strong><p>Your order information stays protected.</p></div></article>
+  </section>
+</main>
+{% endblock %}

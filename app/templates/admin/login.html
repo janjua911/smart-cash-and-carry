@@ -1,0 +1,5 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin Login | SMART CASH AND CARRY</title><link rel="stylesheet" href="{{ url_for('static', path='/css/admin.css') }}"></head>
+<body class="login-page"><main class="login-card"><a href="/" class="login-brand"><span>AI</span> SMART<small>Store administration</small></a><p class="login-eyebrow">Protected access</p><h1>Welcome back.</h1><p>Sign in to manage products, prices, stock, images and orders.</p>{% if error %}<div class="login-error">{{ error }}</div>{% endif %}<form action="/admin/login" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>Email address<input type="email" name="email" value="{{ email|default('') }}" required autofocus></label><label>Password<input type="password" name="password" required></label><button type="submit">Sign in to dashboard</button></form><a href="/" class="store-return">← Return to storefront</a></main></body>
+</html>
