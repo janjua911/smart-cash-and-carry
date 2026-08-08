@@ -10,6 +10,7 @@ from app.database import Base
 
 if TYPE_CHECKING:
     from app.models.category import Category
+    from app.models.product_variant import ProductVariant
 
 
 class StockStatus(str, enum.Enum):
@@ -43,14 +44,22 @@ class Product(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
+    # Relationships
     category: Mapped["Category"] = relationship(back_populates="products")
+    
+    # ✅ Variants relationship added
+    variants: Mapped[list["ProductVariant"]] = relationship(
+        "ProductVariant", back_populates="product", cascade="all, delete-orphan"
+    )
 
     @property
     def can_order(self) -> bool:
+        # ✅ Updated: Check if any variant is available OR main product has stock
+        has_active_variant = any(v.is_active and v.stock_quantity > 0 for v in self.variants)
         return (
-            self.is_active
-            and self.stock_status == StockStatus.IN_STOCK
-            and self.stock_quantity > 0
+            self.is_active 
+            and self.stock_status == StockStatus.IN_STOCK 
+            and (self.stock_quantity > 0 or has_active_variant)
         )
 
     @property

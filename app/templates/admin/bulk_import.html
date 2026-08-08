@@ -1,0 +1,152 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Bulk Import / Update{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <h1>📥 Bulk Import / Update from Excel</h1>
+  
+  <div class="import-instructions">
+    <h3>How it works:</h3>
+    <ul>
+      <li>Upload an Excel file (.xlsx) with product data</li>
+      <li><strong>Existing products</strong> (matched by name) will be updated</li>
+      <li><strong>New products</strong> will be added automatically</li>
+      <li>Images must be added manually later from product edit page</li>
+    </ul>
+    
+    <h4>Required Columns:</h4>
+    <table class="admin-table">
+      <tr><th>Column</th><th>Required</th><th>Description</th></tr>
+      <tr><td>ProductName / Name</td><td>✅ Yes</td><td>Product name</td></tr>
+      <tr><td>Price</td><td>✅ Yes</td><td>Selling price (e.g., 120)</td></tr>
+      <tr><td>CompareAtPrice / MRP</td><td>❌ No</td><td>Original price for discount display</td></tr>
+      <tr><td>Stock / Qty</td><td>❌ No</td><td>Stock quantity (default: 0)</td></tr>
+      <tr><td>Category</td><td>❌ No</td><td>Category name (auto-created if new)</td></tr>
+      <tr><td>Unit</td><td>❌ No</td><td>Unit like "1L", "500g", "pack"</td></tr>
+    </table>
+    
+    <p style="margin-top: 12px; color: #666;">
+      💡 <strong>Tip:</strong> Download this 
+      <a href="/static/sample_import.xlsx" download>sample Excel file</a> 
+      to see the format.
+    </p>
+  </div>
+
+  <form method="post" action="/admin/bulk-import" enctype="multipart/form-data" class="import-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    
+    <div class="form-group">
+      <label>Select Excel File (.xlsx)</label>
+      <input type="file" name="file" accept=".xlsx,.xls" required>
+    </div>
+    
+    <button type="submit" class="primary-button">📤 Upload & Process</button>
+  </form>
+
+  {% if flash %}
+  <div class="import-results">
+    <h3>Last Import Results</h3>
+    <div class="result-cards">
+      <div class="result-card updated">
+        <span class="number">{{ last_results.updated|default(0) }}</span>
+        <span class="label">Updated</span>
+      </div>
+      <div class="result-card new">
+        <span class="number">{{ last_results.new|default(0) }}</span>
+        <span class="label">New Added</span>
+      </div>
+      <div class="result-card skipped">
+        <span class="number">{{ last_results.skipped|default(0) }}</span>
+        <span class="label">Skipped</span>
+      </div>
+    </div>
+    
+    {% if last_results.errors %}
+    <div class="errors-list">
+      <h4>Errors:</h4>
+      <ul>
+        {% for error in last_results.errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<style>
+.import-instructions {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+.import-instructions ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+.import-instructions li {
+  margin: 4px 0;
+  color: #475569;
+}
+.import-form {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.import-form input[type="file"] {
+  padding: 10px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 6px;
+  width: 100%;
+  cursor: pointer;
+}
+.import-results {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px;
+}
+.result-cards {
+  display: flex;
+  gap: 16px;
+  margin: 16px 0;
+}
+.result-card {
+  flex: 1;
+  text-align: center;
+  padding: 16px;
+  border-radius: 8px;
+}
+.result-card.updated { background: #dbeafe; }
+.result-card.new { background: #dcfce7; }
+.result-card.skipped { background: #f1f5f9; }
+.result-card .number {
+  display: block;
+  font-size: 32px;
+  font-weight: 700;
+  color: #1e293b;
+}
+.result-card .label {
+  font-size: 14px;
+  color: #64748b;
+}
+.errors-list {
+  margin-top: 16px;
+  padding: 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+}
+.errors-list li {
+  color: #991b1b;
+  font-size: 13px;
+  margin: 4px 0;
+}
+</style>
+{% endblock %}
