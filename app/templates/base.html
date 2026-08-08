@@ -1,96 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Admin | Smart Cash & Carry{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='/css/admin.css') }}">
-  {% block head %}{% endblock %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ settings.APP_NAME }}{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
+    {% if request.url.path.startswith('/admin') %}
+    <!-- Admin Navigation -->
+    <nav class="admin-nav">
+        <div class="nav-brand">
+            <span class="logo">SMART</span>
+            <span class="sub">Admin</span>
+        </div>
+        <div class="nav-links">
+            <a href="/admin" class="{% if request.url.path == '/admin' %}active{% endif %}">📊 Dashboard</a>
+            <a href="/admin/products" class="{% if '/admin/products' in request.url.path %}active{% endif %}">📦 Products</a>
+            <a href="/admin/categories" class="{% if '/admin/categories' in request.url.path %}active{% endif %}">🏷️ Categories</a>
+            <a href="/admin/orders" class="{% if '/admin/orders' in request.url.path %}active{% endif %}">🛒 Orders</a>
+            <a href="/admin/bulk-import" class="{% if '/admin/bulk-import' in request.url.path %}active{% endif %}">📥 Bulk Import</a>
+        </div>
+        <div class="nav-actions">
+            <a href="/" target="_blank" class="btn-view">🌐 View Store</a>
+            <form action="/admin/logout" method="post" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn-logout">🚪 Logout</button>
+            </form>
+        </div>
+    </nav>
+    {% else %}
+    <!-- Store Navigation -->
+    <nav class="store-nav">
+        <div class="store-brand">
+            <a href="/">SMART <span>Cash & Carry</span></a>
+        </div>
+        <div class="store-search">
+            <form action="/" method="get">
+                <input type="search" name="q" placeholder="Search products..." value="{{ search_query or '' }}">
+                <button type="submit">🔍</button>
+            </form>
+        </div>
+        <div class="store-actions">
+            <a href="/cart" class="cart-link">
+                🛒 Cart
+                {% if cart_count > 0 %}<span class="cart-badge">{{ cart_count }}</span>{% endif %}
+            </a>
+        </div>
+    </nav>
+    {% endif %}
 
-  <div class="admin-wrapper">
-    
-    <!-- Sidebar -->
-    <aside class="admin-sidebar">
-      <div class="sidebar-brand">
-        <a href="/admin" class="brand">
-          <span class="brand-mark">
-            <i></i>
-            <b></b>
-          </span>
-          <span>
-            <strong>SMART</strong>
-            <small>Admin</small>
-          </span>
-        </a>
-      </div>
-      
-      <nav class="sidebar-nav">
-        <a href="/admin" class="sidebar-link {% if request.url.path == '/admin' %}active{% endif %}">
-          📊 Dashboard
-        </a>
-        <a href="/admin/products" class="sidebar-link {% if '/products' in request.url.path %}active{% endif %}">
-          📦 Products
-        </a>
-        <a href="/admin/categories" class="sidebar-link {% if '/categories' in request.url.path %}active{% endif %}">
-          🏷️ Categories
-        </a>
-        <a href="/admin/orders" class="sidebar-link {% if '/orders' in request.url.path %}active{% endif %}">
-          📋 Orders
-        </a>
-        
-        <!-- ✅ Bulk Import Link -->
-        <a href="/admin/bulk-import" class="sidebar-link {% if '/admin/bulk-import' in request.url.path %}active{% endif %}">
-          📥 Bulk Import
-        </a>
-        
-        <hr class="sidebar-divider">
-        
-        <form method="post" action="/admin/logout" style="display: inline;">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-          <button type="submit" class="sidebar-link logout-btn">
-            🚪 Logout
-          </button>
-        </form>
-      </nav>
-    </aside>
-    
+    <!-- Flash Messages -->
+    {% if flash %}
+    <div class="flash flash-{{ flash.category }}">
+        {{ flash.message }}
+    </div>
+    {% endif %}
+
     <!-- Main Content -->
-    <main class="admin-main">
-      
-      <!-- Header -->
-      <header class="admin-header">
-        <div class="header-left">
-          <button class="mobile-toggle" aria-label="Toggle sidebar">☰</button>
-          <h1>{% block page_name %}Dashboard{% endblock %}</h1>
-        </div>
-        <div class="header-right">
-          <span class="admin-user">👤 {{ admin.email if admin else 'Admin' }}</span>
-        </div>
-      </header>
-      
-      <!-- Flash Messages -->
-      {% if flash %}
-        <div class="flash flash-{{ flash.category }} shell" role="status">
-          <span>{{ flash.message }}</span>
-          <button type="button" aria-label="Close" data-flash-close>×</button>
-        </div>
-      {% endif %}
-      
-      <!-- Content -->
-      <div class="admin-content">
-        {% block content %}
-          <p>Welcome to admin panel.</p>
-        {% endblock %}
-      </div>
-      
+    <main class="{% if request.url.path.startswith('/admin') %}admin-main{% else %}store-main{% endif %}">
+        {% block content %}{% endblock %}
     </main>
-    
-  </div>
 
-  <script src="{{ url_for('static', path='/js/admin.js') }}" defer></script>
-  {% block scripts %}{% endblock %}
+    <!-- Footer -->
+    <footer class="site-footer">
+        <p>&copy; 2026 SMART CASH AND CARRY. All rights reserved.</p>
+    </footer>
 
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

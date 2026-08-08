@@ -1,10 +1,105 @@
-{% extends "admin/base.html" %}
-{% block title %}Dashboard{% endblock %}{% block page_name %}Dashboard{% endblock %}
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — {{ settings.APP_NAME }}{% endblock %}
+
 {% block content %}
-<div class="admin-heading"><div><p>Store overview</p><h1>Good to see you, {{ admin.name.split(' ')[0] }}.</h1><span>Here is what is happening with SMART CASH AND CARRY today.</span></div></div>
-<section class="stat-grid"><article><span>Products</span><strong>{{ stats.products }}</strong><small>{{ stats.active_products }} visible</small></article><article><span>Low stock</span><strong>{{ stats.low_stock }}</strong><small>5 units or fewer</small></article><article><span>Pending orders</span><strong>{{ stats.pending_orders }}</strong><small>{{ stats.orders }} total orders</small></article><article><span>Order value</span><strong>{{ stats.revenue|currency }}</strong><small>Excluding cancelled</small></article></section>
-<div class="dashboard-grid">
-  <section class="admin-panel"><div class="panel-heading"><div><h2>Recent orders</h2><p>Latest website orders</p></div><a href="/admin/orders">View all</a></div><div class="table-wrap"><table><thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th></tr></thead><tbody>{% for order in recent_orders %}<tr><td><a href="/admin/orders/{{ order.id }}">{{ order.order_number }}</a></td><td>{{ order.customer_name }}<small>{{ order.phone }}</small></td><td>{{ order.total_amount|currency }}</td><td><span class="status status-{{ order.status.value }}">{{ order.status.value|title }}</span></td></tr>{% else %}<tr><td colspan="4" class="table-empty">No orders yet.</td></tr>{% endfor %}</tbody></table></div></section>
-  <section class="admin-panel"><div class="panel-heading"><div><h2>Stock attention</h2><p>Products that need restocking</p></div><a href="/admin/products">Manage</a></div><div class="stock-list">{% for product in low_stock_products %}<a href="/admin/products/{{ product.id }}/edit"><span class="mini-image">{% if product.image_path %}<img src="{{ product.image_path }}" alt="">{% else %}{{ product.name[:1] }}{% endif %}</span><div><strong>{{ product.name }}</strong><small>{{ product.stock_quantity }} remaining • {{ product.stock_status.value|replace('_',' ') }}</small></div></a>{% else %}<p class="table-empty">Stock levels look healthy.</p>{% endfor %}</div></section>
+<div class="admin-container">
+    <h1>Dashboard</h1>
+    <p class="admin-welcome">Good to see you, {{ admin.name.split(' ')[0] }}.</p>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.products }}</div>
+            <div class="stat-label">Total Products</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.active_products }}</div>
+            <div class="stat-label">Active Products</div>
+        </div>
+        <div class="stat-card warning">
+            <div class="stat-value">{{ stats.low_stock }}</div>
+            <div class="stat-label">Low Stock</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.orders }}</div>
+            <div class="stat-label">Total Orders</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.pending_orders }}</div>
+            <div class="stat-label">Pending Orders</div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-value">{{ stats.revenue|currency }}</div>
+            <div class="stat-label">Revenue</div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- Recent Orders -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>📋 Recent Orders</h2>
+                <a href="/admin/orders" class="btn-link">View all →</a>
+            </div>
+            <div class="panel-body">
+                {% if recent_orders %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Customer</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in recent_orders %}
+                        <tr>
+                            <td><a href="/admin/orders/{{ order.id }}">{{ order.order_number }}</a></td>
+                            <td>{{ order.customer_name }}<br><small>{{ order.phone }}</small></td>
+                            <td>{{ order.total_amount|currency }}</td>
+                            <td><span class="badge badge-{{ order.status.value }}">{{ order.status.value|title }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="empty">No orders yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Low Stock -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>⚠️ Stock Attention</h2>
+                <a href="/admin/products" class="btn-link">Manage →</a>
+            </div>
+            <div class="panel-body">
+                {% if low_stock_products %}
+                <div class="low-stock-list">
+                    {% for product in low_stock_products %}
+                    <div class="low-stock-item">
+                        <div class="product-thumb">
+                            {% if product.image_path %}
+                            <img src="{{ product.image_path }}" alt="">
+                            {% else %}
+                            <span>{{ product.name[:1] }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="product-info">
+                            <strong>{{ product.name }}</strong>
+                            <span class="stock-count">{{ product.stock_quantity }} remaining</span>
+                            <span class="status-badge">{{ product.stock_status.value|replace('_',' ')|title }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="empty">Stock levels look healthy. ✅</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

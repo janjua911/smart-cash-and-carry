@@ -15,6 +15,10 @@ Chalane ka tareeqa:
 
     Ya auto-watch ke liye:
     python -m scripts.sync_pos --watch
+    
+    Custom Excel path:
+    set POS_EXCEL_PATH=C:\path\to\stock.xlsx
+    python -m scripts.sync_pos
 """
 
 import os
@@ -24,36 +28,38 @@ import argparse
 from datetime import datetime
 from decimal import Decimal
 
-from openpyxl import load_workbook
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
 # Project root add karo taake imports kaam karein
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
-from app.core.config import settings
-from app.database import Base
-from app.models.product import Product
+# ============================================================
+# CONFIGURATION — Path set karo
+# ============================================================
+
+# ✅ FIX: Environment variable se path lo, warna project root mein stock.xlsx
+EXCEL_FILE = os.environ.get(
+    "POS_EXCEL_PATH", 
+    os.path.join(PROJECT_ROOT, "stock.xlsx")
+)
+
+# ✅ FIX: App ki database engine aur session use karo
+from app.database import engine, SessionLocal
+from app.models.product import Product, StockStatus
 from app.models.category import Category
-from app.services.slug import generate_slug
+from app.services.slug import slugify as generate_slug
 
 # ============================================================
-# CONFIGURATION — Yahan apna path set karo
+# Optional: Watchdog support (agar install ho toh)
 # ============================================================
 
-# Option A: Excel file project root mein rakho (easy)
-EXCEL_FILE = r"D:\Hassan Afzal\CnC\centro\Smart-Cash-and-Carry-main\stock.xlsx"
-
-# Option B: Agar POS kisi aur folder se export karti hai, yeh path change karo
-# EXCEL_FILE = r"D:\POS\Exports\stock.xlsx"
-# EXCEL_FILE = r"C:\Users\hassa\Desktop\stock.xlsx"
-
-# Database connection
-engine = create_engine(str(settings.DATABASE_URL))
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+try:
+    from watchdog.observers import Observer
+    from watchdog.events import FileSystemEventHandler
+    WATCHDOG_AVAILABLE = True
+except ImportError:
+    WATCHDOG_AVAILABLE = False
+    print("ℹ️  Watchdog not installed. Auto-watch mode disabled.")
+    print("   Install with: pip install watchdog\n")
 
 # Excel column mapping (header names ko lowercase mein match karta hai)
 COLUMN_MAP = {
@@ -119,7 +125,7 @@ def sync_excel_to_db():
     
     if not os.path.exists(EXCEL_FILE):
         print(f"\n❌ ERROR: File not found: {EXCEL_FILE}")
-        print("   stock.xlsx ko project root folder mein rakho ya EXCEL_FILE path change karo.")
+        print("   Set POS_EXCEL_PATH environment variable or place stock.xlsx in project root.")
         return False
 
     db = SessionLocal()
@@ -128,6 +134,13 @@ def sync_excel_to_db():
         print(f"📊 SYNC STARTED: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"📁 File: {EXCEL_FILE}")
         print(f"{'='*60}")
+
+        # ✅ FIX: openpyxl import yahan karo (optional dependency)
+        try:
+            from openpyxl import load_workbook
+        except ImportError:
+            print("❌ ERROR: openpyxl not installed. Install with: pip install openpyxl")
+            return False
 
         wb = load_workbook(EXCEL_FILE, data_only=True)
         ws = wb.active  # Pehli sheet
@@ -208,11 +221,11 @@ def sync_excel_to_db():
                     product.price = Decimal(str(price)) if price else product.price
                     product.stock_quantity = max(0, stock)
                     
-                    # Auto status
+                    # ✅ FIX: Enum use karo, string nahi
                     if product.stock_quantity > 0:
-                        product.stock_status = "in_stock"
+                        product.stock_status = StockStatus.IN_STOCK
                     else:
-                        product.stock_status = "out_of_stock"
+                        product.stock_status = StockStatus.OUT_OF_STOCK
 
                     changed = (old_price != float(product.price) or 
                                old_stock != product.stock_quantity or 
@@ -242,7 +255,8 @@ def sync_excel_to_db():
                         price=Decimal(str(price)) if price else Decimal("0"),
                         compare_at_price=None,
                         stock_quantity=max(0, stock),
-                        stock_status="in_stock" if stock > 0 else "out_of_stock",
+                        # ✅ FIX: Enum use karo
+                        stock_status=StockStatus.IN_STOCK if stock > 0 else StockStatus.OUT_OF_STOCK,
                         unit="piece",
                         image_path=None,  # ⚠️ Manual add karni hai
                         is_active=True,
@@ -280,22 +294,27 @@ def sync_excel_to_db():
 
 # ==================== AUTO-WATCH MODE ====================
 
-class ExcelSyncHandler(FileSystemEventHandler):
-    def __init__(self):
-        self.last_processed = 0
+if WATCHDOG_AVAILABLE:
+    class ExcelSyncHandler(FileSystemEventHandler):
+        def __init__(self):
+            self.last_processed = 0
 
-    def on_modified(self, event):
-        if event.src_path.endswith((".xlsx", ".xls")):
-            now = time.time()
-            if now - self.last_processed > 3:  # 3 second debounce
-                self.last_processed = now
-                time.sleep(1)
-                print(f"\n📁 File change detected: {event.src_path}")
-                sync_excel_to_db()
+        def on_modified(self, event):
+            if event.src_path.endswith((".xlsx", ".xls")):
+                now = time.time()
+                if now - self.last_processed > 3:  # 3 second debounce
+                    self.last_processed = now
+                    time.sleep(1)
+                    print(f"\n📁 File change detected: {event.src_path}")
+                    sync_excel_to_db()
 
 
 def watch_mode():
     """Background mein file watch karta hai"""
+    if not WATCHDOG_AVAILABLE:
+        print("\n❌ Watchdog not installed. Install with: pip install watchdog")
+        return
+    
     print(f"\n👁️  WATCH MODE STARTED")
     print(f"   Watching: {EXCEL_FILE}")
     print(f"   stock.xlsx save karo — auto-sync ho jayega!")

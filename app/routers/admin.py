@@ -1,8 +1,8 @@
 from decimal import Decimal, InvalidOperation
-from datetime import datetime  # ✅ Added for bulk import
-import io  # ✅ Added for bulk import
+from datetime import datetime
+import io
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status, UploadFile, File  # ✅ Added UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, status, UploadFile, File
 from fastapi.responses import RedirectResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
@@ -113,47 +113,78 @@ async def apply_product_form(db: Session, product: Product, form) -> None:
         delete_local_image(old_image_path)
 
 
-# Helper function to handle variants
+# ✅ FIXED: Variant handler with upsert approach - NO data loss!
 def handle_product_variants(db: Session, product_id: int, form) -> None:
-    """Create/update/delete variants for a product."""
+    """Create/update/delete variants for a product using upsert logic."""
     variant_names = form.getlist("variant_name[]")
     variant_prices = form.getlist("variant_price[]")
     variant_stocks = form.getlist("variant_stock[]")
-    variant_ids = form.getlist("variant_id[]")  # For editing existing variants
-    
-    # If no variant data, skip
+    variant_ids = form.getlist("variant_id[]")  # existing variant IDs
+    variant_skus = form.getlist("variant_sku[]")
+    variant_actives = form.getlist("variant_is_active[]")
+
     if not variant_names or not any(name.strip() for name in variant_names):
-        return
-    
-    # Delete existing variants if editing
-    if product_id:
+        # If form submitted with no variants, optionally clear them
+        # Comment out the next two lines if you want to keep variants when form sends none
         db.query(ProductVariant).filter(ProductVariant.product_id == product_id).delete()
-    
-    # Create new variants
+        return
+
+    submitted_ids: set[int] = set()
+
     for i, name in enumerate(variant_names):
-        if name.strip():
-            # Get price adjustment (handle empty or invalid values)
-            price_adj_str = variant_prices[i] if i < len(variant_prices) else "0"
-            stock_str = variant_stocks[i] if i < len(variant_stocks) else "0"
-            
-            try:
-                price_adjustment = float(price_adj_str.strip()) if price_adj_str.strip() else 0
-            except ValueError:
-                price_adjustment = 0
-            
-            try:
-                stock_quantity = int(stock_str.strip()) if stock_str.strip() else 0
-            except ValueError:
-                stock_quantity = 0
-            
+        if not name.strip():
+            continue
+
+        vid_str = variant_ids[i] if i < len(variant_ids) else ""
+        price_adj_str = variant_prices[i] if i < len(variant_prices) else "0"
+        stock_str = variant_stocks[i] if i < len(variant_stocks) else "0"
+        sku_str = variant_skus[i] if i < len(variant_skus) else None
+        is_active_str = variant_actives[i] if i < len(variant_actives) else "on"
+
+        try:
+            price_adjustment = Decimal(str(price_adj_str).strip()) if str(price_adj_str).strip() else Decimal("0")
+        except Exception:
+            price_adjustment = Decimal("0")
+
+        try:
+            stock_quantity = int(stock_str.strip()) if str(stock_str).strip() else 0
+        except ValueError:
+            stock_quantity = 0
+
+        is_active = str(is_active_str).strip().lower() in ("on", "true", "1", "yes")
+
+        if vid_str and str(vid_str).strip().isdigit():
+            # ✅ Update existing variant
+            vid = int(vid_str)
+            variant = db.get(ProductVariant, vid)
+            if variant and variant.product_id == product_id:
+                variant.name = name.strip()
+                variant.price_adjustment = float(price_adjustment)
+                variant.stock_quantity = max(0, stock_quantity)
+                variant.sku = sku_str.strip() if sku_str else None
+                variant.is_active = is_active
+                submitted_ids.add(vid)
+        else:
+            # ✅ Create new variant
             variant = ProductVariant(
                 product_id=product_id,
                 name=name.strip(),
-                price_adjustment=price_adjustment,
+                price_adjustment=float(price_adjustment),
                 stock_quantity=max(0, stock_quantity),
-                is_active=True,  # New variants are active by default
+                sku=sku_str.strip() if sku_str else None,
+                is_active=is_active,
             )
             db.add(variant)
+            db.flush()
+            submitted_ids.add(variant.id)
+
+    # ✅ Delete variants not in the submitted list (only if they were removed from form)
+    all_existing = db.scalars(
+        select(ProductVariant).where(ProductVariant.product_id == product_id)
+    ).all()
+    for v in all_existing:
+        if v.id not in submitted_ids:
+            db.delete(v)
 
 
 @router.get("/login")
@@ -371,7 +402,7 @@ async def product_update(
     try:
         await apply_product_form(db, product, form)
         
-        # Handle variants update
+        # Handle variants update - FIXED: uses upsert now
         handle_product_variants(db, product.id, form)
         
         db.commit()
@@ -541,7 +572,7 @@ async def order_status_update(
 # ✅ BULK IMPORT ROUTES
 # ============================================
 
-from openpyxl import load_workbook  # ✅ Import inside (after dependencies)
+from openpyxl import load_workbook
 
 
 def _find_col(headers, possible_names):
@@ -576,7 +607,6 @@ def _parse_int(value):
 def _generate_slug(name):
     """Generate URL slug from name."""
     slug = name.lower().strip()
-    # Remove special characters
     import re
     slug = re.sub(r'[^a-z0-9]+', '-', slug)
     slug = slug.strip('-')
@@ -610,7 +640,6 @@ def bulk_import_page(
     admin: Admin = Depends(require_admin),
 ):
     """Show bulk import page."""
-    # Get results from session if available
     last_results = request.session.pop("last_import_results", None)
     
     return templates.TemplateResponse(

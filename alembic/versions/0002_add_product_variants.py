@@ -1,37 +1,31 @@
-"""add_product_variants
+"""Add product_variants table
 
-Revision ID: 0002
+Revision ID: 0002_add_product_variants
 Revises: 0001_initial
-Create Date: 2026-08-08 00:00:00.000000
+Create Date: 2025-01-01 00:00:00.000000
 
 """
 from alembic import op
 import sqlalchemy as sa
 
-# revision identifiers, used by Alembic.
-revision = '0002'
-down_revision = '0001_initial'
+# ✅ FIX: Must match the revision ID of 0001_initial_schema.py
+revision = "0002_add_product_variants"
+down_revision = "0001_initial"  # ✅ Was probably "0002" — WRONG
 branch_labels = None
 depends_on = None
 
-
 def upgrade() -> None:
     op.create_table(
-        'product_variants',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('product_id', sa.Integer(), nullable=False),
-        sa.Column('name', sa.String(length=100), nullable=False),
-        sa.Column('sku', sa.String(length=50), nullable=True),
-        sa.Column('price_adjustment', sa.Numeric(precision=10, scale=2), nullable=False),
-        sa.Column('stock_quantity', sa.Integer(), nullable=False),
-        sa.Column('is_active', sa.Boolean(), nullable=False),
-        sa.ForeignKeyConstraint(['product_id'], ['products.id'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('sku')
+        "product_variants",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column("product_id", sa.Integer(), sa.ForeignKey("products.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("name", sa.String(100), nullable=False),
+        sa.Column("sku", sa.String(50), unique=True, nullable=True),
+        sa.Column("price_adjustment", sa.Numeric(10, 2), default=0.0),
+        sa.Column("stock_quantity", sa.Integer(), default=0),
+        sa.Column("is_active", sa.Boolean(), default=True, nullable=False),
     )
-    op.create_index(op.f('ix_product_variants_product_id'), 'product_variants', ['product_id'], unique=False)
-
+    op.create_index("ix_product_variants_product_id", "product_variants", ["product_id"])
 
 def downgrade() -> None:
-    op.drop_index(op.f('ix_product_variants_product_id'), table_name='product_variants')
-    op.drop_table('product_variants')
+    op.drop_table("product_variants")
